@@ -4,18 +4,13 @@ import webbrowser
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy import Spotify
 
-CREDENTIALS_PATH = r"C:\Users\user\source\spotify\credentials.json"
-SCOPE = 'user-top-read'
+from constants import CREDENTIALS_PATH
+
+
 
 def main():
 
-    with open(CREDENTIALS_PATH, 'r') as json_file:
-        credentials = json.loads(json_file.read())
 
-    # Set your Spotify API credentials
-    client_id = credentials["id"]
-    client_secret = credentials["secret"]
-    redirect_uri = credentials["uri"]
 
     # Initialize the Spotify OAuth object
     sp_oauth = SpotifyOAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, scope=SCOPE)
@@ -36,9 +31,7 @@ def main():
     sp = Spotify(auth=access_token)
 
     # Example: Get the user's saved tracks
-    results = sp.current_user_top_artists()
-    for idx, item in enumerate(results['items']):
-        print(item['name'])
+    results = sp.add_to_queue(MICRODOSING_URI)
 
 
 if __name__ == '__main__':
