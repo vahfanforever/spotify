@@ -14,14 +14,14 @@ def main():
     credentials = get_credentials()
 
     # Initialize the Spotify OAuth object
-    sp_oauth = SpotifyOAuth(client_id=credentials.id, client_secret=credentials.secret, redirect_uri=credentials.redirect_uri, scope="user-read-playback-state")
+    sp_oauth = SpotifyOAuth(client_id=credentials.id, client_secret=credentials.secret, redirect_uri=credentials.redirect_uri, scope=SCOPE)
 
     auth_url = sp_oauth.get_authorize_url()
     authorization_code = scrape(auth_url)
 
     # access webpage instead (user interaction)
-    webbrowser.open(auth_url)
-    authorization_code = input("Enter the authorization code: ")
+    # webbrowser.open(auth_url)
+    # authorization_code = input("Enter the authorization code: ")
 
     # Exchange authorization code for access token
     token_info = sp_oauth.get_access_token(authorization_code)
@@ -34,10 +34,10 @@ def main():
 
 
     # need to check if the user is active
-    current_playback = sp.current_playback()
+    # current_playback = sp.current_playback()
 
-    if not current_playback:
-        print("here")
+    # if not current_playback:
+    #     print("here")
 
     # check the current song
 
