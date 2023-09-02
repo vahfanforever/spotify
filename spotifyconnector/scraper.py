@@ -3,10 +3,10 @@ from typing import Optional
 import requests
 from bs4 import BeautifulSoup
 
-# URL of the webpage you want to scrape
-URL = 'http://127.0.0.1:5000/'
+from constants import URL
 
-def scrape(url: str) -> Optional[str]:
+
+def scrape_uri_webpage(url: str) -> Optional[str]:
     # Send an HTTP GET request to the URL
     response = requests.get(url or URL)
 
@@ -16,7 +16,7 @@ def scrape(url: str) -> Optional[str]:
         # soup = BeautifulSoup(response.text, 'html.parser')
 
         # Decode the HTML content from bytes to a string
-        html_content_str = response.content.decode("utf-8")
+        html_content_str = response.content  # .decode("utf-8")
 
         # Create a BeautifulSoup object to parse the HTML
         soup = BeautifulSoup(html_content_str, "html.parser")
@@ -25,17 +25,17 @@ def scrape(url: str) -> Optional[str]:
         # text_content = soup.get_text()
 
         # # Find the <meta> tag with id="bootstrap-data"
-        meta_tag = soup.find('meta', id='bootstrap-data')
+        meta_tag = soup.find("meta", id="bootstrap-data")
         # meta_tag = soup.find("body")
 
         # # Extract the content attribute of the <meta> tag
-        bootstrap_data = meta_tag['sp-bootstrap-data']
+        bootstrap_data = meta_tag["sp-bootstrap-data"]
 
         # # Parse the content as JSON
         bootstrap_data_json = json.loads(bootstrap_data)
 
         # # Access the "tpaState" value
-        tpa_state_value = bootstrap_data_json.get('tpaState')
+        tpa_state_value = bootstrap_data_json.get("tpaState")
 
         # # Print the "tpaState" value
         return tpa_state_value

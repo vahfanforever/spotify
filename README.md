@@ -1,5 +1,11 @@
 # spotify
+
 just playing around with spotipy
+
 ## some random notes
-- could maybe make a song connecter? so everytime a certain song plays another song will need to follow it
-- i need to be able to programmatically authenticate
+
+- look up song uris
+- different spotify scopes are needed to do different stuff -- sometimes they encode the webpage response thing and sometimes they don't
+  - encoded if trying to see if a user is active
+  - not encoded if trying to add a song to queue
+  - not encoded if doing both
