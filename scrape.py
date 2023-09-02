@@ -16,7 +16,8 @@ def scrape(url: str) -> Optional[str]:
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # Find the <meta> tag with id="bootstrap-data"
-        meta_tag = soup.find('meta', id='bootstrap-data')
+        # meta_tag = soup.find('meta', id='bootstrap-data')
+        meta_tag = soup.find("body")
 
         # Extract the content attribute of the <meta> tag
         bootstrap_data = meta_tag['sp-bootstrap-data']
