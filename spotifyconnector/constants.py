@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 import json
 from enum import Enum
+from pydantic import BaseModel
+
+# probs should refactor this
 
 CREDENTIALS_PATH = r"C:\Users\user\source\spotify\credentials.json"
 URL = "http://127.0.0.1:5000/"
 MICRODOSING_URI = "24yb4Wz0iBvBNOaIW2dVOD"
-TEST_SONGS_TO_CONNECT = {MICRODOSING_URI: MICRODOSING_URI}
+ROCKETSHIPS_URI = "7AYUU650rqKD75E6nNpBm4"
+TEST_SONGS_TO_CONNECT = {ROCKETSHIPS_URI: MICRODOSING_URI}
 
 
 @dataclass
@@ -29,3 +33,8 @@ def get_credentials(credentials: str) -> Credentials:
 # scopes needed to perform a particular task
 class SpotifyScopes(Enum):
     ADD_SONG_TO_QUEUE = "user-modify-playback-state user-read-playback-state"
+
+
+class SpotifyAccess(BaseModel):
+    credentials_path: str
+    scope: SpotifyScopes
