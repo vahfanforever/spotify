@@ -44,6 +44,12 @@ def check_if_user_is_active(sp: Spotify) -> bool:
     return bool(sp.current_playback())
 
 
+def get_song_currently_playings_uri(sp: Spotify) -> str:
+    current_playback = sp.current_playback()
+    uri = current_playback["item"]["uri"]
+    return uri.split("spotify:track:")[1]
+
+
 def add_song_to_queue(sp: Spotify, song_uri: str):
     sp.add_to_queue(MICRODOSING_URI)
 
