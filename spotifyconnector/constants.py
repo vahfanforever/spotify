@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 # probs should refactor this
 
-CREDENTIALS_PATH = r"C:\Users\user\source\spotify\credentials.json"
+CREDENTIALS_PATH = r"/home/vahfanforever/source/spotify/credentials.json"
 URL = "http://127.0.0.1:5000/"
 
 MICRODOSING_URI = "24yb4Wz0iBvBNOaIW2dVOD"

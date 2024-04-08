@@ -3,8 +3,8 @@ import webbrowser
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy import Spotify
 
-from constants import get_credentials, SpotifyAccess
-from scraper import scrape_uri_webpage
+from spotifyconnector.constants import get_credentials, SpotifyAccess
+from spotifyconnector.scraper import scrape_uri_webpage
 
 
 def get_spotify_oauth(credentials_path: str, scope: str):

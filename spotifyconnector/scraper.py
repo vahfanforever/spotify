@@ -3,7 +3,7 @@ from typing import Optional
 import requests
 from bs4 import BeautifulSoup
 
-from constants import URL
+from spotifyconnector.constants import URL
 
 
 def scrape_uri_webpage(url: str) -> Optional[str]:
