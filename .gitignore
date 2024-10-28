@@ -1,6 +1,0 @@
-/venv
-*.json
-.cache
-__pycache__
-.env
-/scratch

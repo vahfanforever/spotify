@@ -1,23 +1,36 @@
 from typing import Dict
-from pydantic import BaseModel
 
 from constants import (
-    SpotifyScopes,
     CREDENTIALS_PATH,
     TEST_SONGS_TO_CONNECT,
     SpotifyAccess,
+    SpotifyScopes,
 )
-from spotify_api import (
-    get_spotify_access,
-    check_if_user_is_active,
-    get_current_songs_uri,
-    add_song_to_queue,
-)
+from spotipy import Spotify
+from pydantic import BaseModel
 
 
 class SpotifyConnectorConfig(BaseModel):
     spotify_access: SpotifyAccess
     connecting_songs: Dict[str, str]
+
+
+def check_if_user_is_active(sp: Spotify) -> bool:
+    return bool(sp.current_playback())
+
+
+def get_current_songs_uri(sp: Spotify) -> str:
+    current_playback = sp.current_playback()
+    uri = current_playback["item"]["uri"]
+    return uri.split("spotify:track:")[1]
+
+
+def add_song_to_queue(sp: Spotify, song_uri: str):
+    sp.add_to_queue(song_uri)
+
+
+def get_spotify_access():
+    pass
 
 
 def connect_songs(config: SpotifyConnectorConfig):
