@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, redirect, request, session, url_for, jsonify
 from flask_cors import CORS
 from spotipy.oauth2 import SpotifyOAuth
+import requests
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True, resources={
@@ -32,6 +33,46 @@ def create_spotify_oauth():
         scope="user-read-playback-state user-modify-playback-state",
         show_dialog=True # might not need this
     )
+
+# Also add a new endpoint for searching tracks
+@app.route("/api/search", methods=["GET"])
+def search_tracks():
+    """Search for tracks on Spotify"""
+    if Field.token_info not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    
+    query = request.args.get("q")
+    if not query:
+        return jsonify({"error": "No search query provided"}), 400
+
+    try:
+        token_info = session[Field.token_info]
+        sp_oauth = create_spotify_oauth()
+        
+        # Check if token needs refresh
+        now = int(datetime.now().timestamp())
+        is_expired = token_info["expires_at"] - now < 60
+        
+        if is_expired:
+            token_info = sp_oauth.refresh_access_token(token_info[Field.refresh_token])
+            session[Field.token_info] = token_info
+
+        headers = {
+            "Authorization": f"Bearer {token_info[Field.access_token]}"
+        }
+        
+        response = requests.get(
+            f"https://api.spotify.com/v1/search?q={query}&type=track&limit=10",
+            headers=headers
+        )
+        
+        response.raise_for_status()
+        return jsonify(response.json())
+
+    except Exception as e:
+        print(f"Search error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    
 
 @app.route("/api/login")
 def login():
