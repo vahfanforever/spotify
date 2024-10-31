@@ -44,12 +44,9 @@ def create_spotify_oauth():
     )
 
 
-# Add this after other global variables
-# In-memory storage for song relationships
 song_relationships: Dict[str, str] = {}
 
 
-# Add these new endpoints
 @app.route("/api/songs/relationships", methods=["POST"])
 def save_song_relationships():
     """Save the relationships between songs"""
@@ -78,26 +75,6 @@ def save_song_relationships():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/songs/relationships", methods=["GET"])
-def get_song_relationships():
-    """Get all song relationships"""
-    if Field.token_info not in session:
-        return jsonify({"error": "Not authenticated"}), 401
-
-    return jsonify({"relationships": song_relationships})
-
-
-@app.route("/api/songs/next/<song_id>", methods=["GET"])
-def get_next_song(song_id):
-    """Get the next song in the sequence"""
-    if Field.token_info not in session:
-        return jsonify({"error": "Not authenticated"}), 401
-
-    next_song_id = song_relationships.get(song_id)
-    return jsonify({"next_song_id": next_song_id})
-
-
-# Also add a new endpoint for searching tracks
 @app.route("/api/search", methods=["GET"])
 def search_tracks():
     """Search for tracks on Spotify"""
