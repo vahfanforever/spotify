@@ -32,6 +32,11 @@ class SongMapping(Base):
 
 # Pydantic Models
 class UserTokenCreate(BaseModel):
+    user_id: str
+    access_token: str
+
+
+class UserTokenUpdate(BaseModel):
     access_token: str
 
 
@@ -64,23 +69,29 @@ app = FastAPI()
 
 
 @app.post("/users/token")
-async def create_user_token(user_id: str, access_token: str, db: Session = Depends(get_db)):
+async def create_user_token(
+    token: UserTokenCreate,  # Changed to use Pydantic model as request body
+    db: Session = Depends(get_db),
+):
     """Create a new user token. Fails if user already exists."""
     # Check if user already exists
-    user = UserToken(user_id=user_id, access_token=access_token)
-    existing_user = db.query(UserToken).filter(UserToken.user_id == user.user_id).first()
+    existing_user = db.query(UserToken).filter(UserToken.user_id == token.user_id).first()
     if existing_user:
         raise HTTPException(
             status_code=409, detail="User already exists. Use PUT /users/{user_id}/token to update."
         )
+
+    # Create UserToken instance from Pydantic model
+    user = UserToken(user_id=token.user_id, access_token=token.access_token)
+
     db.add(user)
     db.commit()
     return {"status": "success", "user_id": user.user_id}
 
 
-@app.post("/users/{user_id}/token")
-async def update_user_token(user_id: str, access_token: str, db: Session = Depends(get_db)):
-    user = UserToken(user_id=user_id, access_token=access_token)
+@app.put("/users/{user_id}/token")
+async def update_user_token(user_id: str, token: UserTokenUpdate, db: Session = Depends(get_db)):
+    user = UserToken(user_id=user_id, access_token=token.access_token)
     db.merge(user)
     db.commit()
     return {"status": "success"}
