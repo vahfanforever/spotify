@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.web
     ports:
       - "8000:8000"
     volumes:
@@ -11,6 +13,19 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/spotify_queue
     depends_on:
       - db
+    networks:
+      - app-network
+
+  queue_manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.queue_manager
+    volumes:
+      - .:/app
+    environment:
+      - API_BASE_URL=http://web:8000
+    depends_on:
+      - web
     networks:
       - app-network
 

@@ -171,6 +171,13 @@ async def get_user_mappings(user_id: str, db: Session = Depends(get_db)):
     return mappings
 
 
+@app.get("/users")
+async def get_users(db: Session = Depends(get_db)):
+    """Get all users"""
+    users = db.query(UserToken).all()
+    return [{"user_id": user.user_id} for user in users]
+
+
 if __name__ == "__main__":
     # Set up local database URL if not provided in environment
     if not os.getenv("DATABASE_URL"):
