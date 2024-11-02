@@ -9,7 +9,7 @@ const ProtectedRoute = ({ children }) => {
   // Check if user is authenticated
   const checkAuth = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/status', {
+      const response = await fetch('http://localhost:8000/api/v1/auth/status', {
         credentials: 'include'
       });
       const data = await response.json();

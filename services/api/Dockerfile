@@ -1,4 +1,3 @@
-# Dockerfile.web
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -6,6 +5,7 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     postgresql-client \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -15,9 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create directory for SQLite database (if needed for local development)
-RUN mkdir -p /app/data
-
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV DATABASE_URL=postgresql://postgres:postgres@db:5432/spotify_queue
@@ -25,5 +22,5 @@ ENV DATABASE_URL=postgresql://postgres:postgres@db:5432/spotify_queue
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["sh", "-c", "alembic upgrade head && uvicorn service.main:app --host 0.0.0.0 --port 8000 --reload"]
+# Run migrations and start the application
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]

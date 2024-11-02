@@ -2,64 +2,64 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const SpotifyAuth = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-    const handleLogin = async () => {
-        try {
-            setError(null);
-            console.log('Fetching Spotify auth URL...');
+  const handleLogin = async () => {
+    try {
+      setError(null);
+      console.log('Fetching Spotify auth URL...');
 
-            const response = await fetch('http://localhost:5000/api/login', {
-                credentials: 'include'
-            });
+      const response = await fetch('http://localhost:8000/api/v1/login', {
+        credentials: 'include'
+      });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-            const data = await response.json();
-            console.log('Received auth URL:', data.auth_url);
+      const data = await response.json();
+      console.log('Received auth URL:', data.auth_url);
 
-            if (data.auth_url) {
-                // Directly navigate to Spotify
-                window.open(data.auth_url, '_self');
-            } else {
-                throw new Error('No auth URL received');
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            setError(`Failed to initiate Spotify login: ${error.message}`);
-        }
-    };
+      if (data.auth_url) {
+        // Directly navigate to Spotify
+        window.open(data.auth_url, '_self');
+      } else {
+        throw new Error('No auth URL received');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(`Failed to initiate Spotify login: ${error.message}`);
+    }
+  };
 
-    // ... rest of your component code ...
+  // ... rest of your component code ...
 
-    return (
-        <div className="auth-container">
-            <div className="auth-card">
-                <div className="card-header">
-                    <h2>Spotify Integration</h2>
-                </div>
-                <div className="card-content">
-                    {error && (
-                        <div className="error-message">
-                            {error}
-                        </div>
-                    )}
-
-                    <button
-                        onClick={handleLogin}
-                        className="login-button"
-                    >
-                        Connect to Spotify
-                    </button>
-                </div>
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="card-header">
+          <h2>Spotify Integration</h2>
+        </div>
+        <div className="card-content">
+          {error && (
+            <div className="error-message">
+              {error}
             </div>
+          )}
 
-            <style>{`
+          <button
+            onClick={handleLogin}
+            className="login-button"
+          >
+            Connect to Spotify
+          </button>
+        </div>
+      </div>
+
+      <style>{`
         .auth-container {
           display: flex;
           justify-content: center;
@@ -117,8 +117,8 @@ const SpotifyAuth = () => {
           background-color: #1ed760;
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default SpotifyAuth;

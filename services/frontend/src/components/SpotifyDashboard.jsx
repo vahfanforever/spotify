@@ -36,7 +36,7 @@ const SpotifyDashboard = () => {
         setError(null);
 
         try {
-            const response = await fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(searchQuery)}`, {
+            const response = await fetch(`http://localhost:8000/api/v1/search?q=${encodeURIComponent(searchQuery)}`, {
                 credentials: 'include'
             });
 
@@ -75,7 +75,7 @@ const SpotifyDashboard = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/songs/relationships', {
+            const response = await fetch('http://localhost:8000/api/v1/songs/relationships', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
