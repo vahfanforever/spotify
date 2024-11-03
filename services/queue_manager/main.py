@@ -1,13 +1,12 @@
 import logging
 import os
 import time
-
+from cryptography.fernet import Fernet
 import requests
 import spotipy
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
-
 
 class QueueManager:
     def __init__(self, api_base_url):
@@ -15,34 +14,58 @@ class QueueManager:
         self.active_users = set()
         self.user_last_check = {}
         self.check_interval = 30  # seconds between checks for each user
+        encryption_key = os.getenv('ENCRYPTION_KEY')
+        if not encryption_key:
+            raise ValueError("ENCRYPTION_KEY environment variable is not set")
+        try:
+            self.cipher_suite = Fernet(encryption_key.encode())
+        except Exception as e:
+            raise ValueError(f"Invalid ENCRYPTION_KEY: {str(e)}")
+
+    def decrypt_token(self, encrypted_token: str) -> str:
+        """Decrypt an encrypted token"""
+        try:
+            return self.cipher_suite.decrypt(encrypted_token.encode()).decode()
+        except Exception as e:
+            logger.error(f"Error decrypting token: {str(e)}")
+            return None
 
     def get_all_users(self):
-        """Fetch all users from the FastAPI service"""
+        """Fetch all users from the API service"""
         try:
-            response = requests.get(f"{self.api_base_url}/users")
+            response = requests.get(
+                f"{self.api_base_url}/users",
+                timeout=10  # Add timeout
+            )
             response.raise_for_status()
             return response.json()
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching users: {str(e)}")
             return []
 
     def get_user_token(self, user_id):
-        """Get user's token from the FastAPI service"""
+        """Get user's token from the API service"""
         try:
-            response = requests.get(f"{self.api_base_url}/users/{user_id}/token")
+            response = requests.get(
+                f"{self.api_base_url}/users/{user_id}/token",
+                timeout=10  # Add timeout
+            )
             response.raise_for_status()
-            return response.json()
-        except Exception as e:
+            return self.decrypt_token(response.json()["access_token"])
+        except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching user token: {str(e)}")
             return None
 
     def get_user_mappings(self, user_id):
-        """Fetch all song mappings for a user from the FastAPI service"""
+        """Fetch all song mappings for a user from the API service"""
         try:
-            response = requests.get(f"{self.api_base_url}/users/{user_id}/mappings")
+            response = requests.get(
+                f"{self.api_base_url}/users/{user_id}/mappings",
+                timeout=10  # Add timeout
+            )
             response.raise_for_status()
             return response.json()
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching user mappings: {str(e)}")
             return []
 
@@ -92,40 +115,34 @@ class QueueManager:
                 logger.error(f"Could not get token for user {user_id}")
                 return
 
-            # Initialize Spotify client
-            sp = spotipy.Spotify(auth=user_token["access_token"])
+            # Initialize Spotify client with decrypted token
+            sp = spotipy.Spotify(auth=user_token)
 
-            # Check if user is active
+            # Rest of the process_user method remains the same
             if not self.check_user_active(sp):
                 if user_id in self.active_users:
                     logger.info(f"User {user_id} became inactive")
                     self.active_users.remove(user_id)
                 return
 
-            # Mark user as active
             if user_id not in self.active_users:
                 logger.info(f"User {user_id} became active")
                 self.active_users.add(user_id)
 
-            # Get current track and next track in queue
             current_track_id, next_track_id = self.get_current_track(sp)
             if not current_track_id:
                 return
 
-            # Get user's mappings and check if current track has a mapping
             mappings = self.get_user_mappings(user_id)
             mapping = self.find_mapping_for_track(current_track_id, mappings)
 
             if mapping:
-                # If we found a mapping and either there's no next track
-                # or the next track isn't the mapped song, queue it
                 mapped_song_id = mapping["queue_song_id"]
                 if not next_track_id or next_track_id != mapped_song_id:
                     try:
                         sp.add_to_queue(f"spotify:track:{mapped_song_id}")
                         logger.info(
-                            f"Added mapped song {mapped_song_id} to queue for user {user_id} "
-                            f"(triggered by {current_track_id})"
+                            f"Added mapped song {mapped_song_id} to queue for user {user_id}"
                         )
                     except Exception as e:
                         logger.error(f"Error adding song to queue: {str(e)}")
@@ -145,7 +162,6 @@ class QueueManager:
                 current_time = time.time()
 
                 for user in users:
-                    # Check if enough time has passed since last check for this user
                     if (
                         current_time - self.user_last_check.get(user["user_id"], 0)
                         >= self.check_interval
@@ -153,15 +169,13 @@ class QueueManager:
                         self.process_user(user)
                         self.user_last_check[user["user_id"]] = current_time
 
-                # Short sleep to prevent excessive CPU usage
                 time.sleep(5)
 
             except Exception as e:
                 logger.error(f"Error in main loop: {str(e)}")
                 time.sleep(5)
 
-
 if __name__ == "__main__":
-    api_base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+    api_base_url = os.getenv("API_BASE_URL", "http://api:8000/api/v1")
     queue_manager = QueueManager(api_base_url)
     queue_manager.run()

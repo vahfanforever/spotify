@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from typing import List, Optional
 from uuid import uuid4
-
+from cryptography.fernet import Fernet
 import requests
 import uvicorn
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
@@ -14,6 +14,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
+
+# Initialize encryption
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY').encode()
+cipher_suite = Fernet(ENCRYPTION_KEY)
 
 # Database Models
 Base = declarative_base()
@@ -75,7 +79,7 @@ class AuthStatus(BaseModel):
 
 
 # Database setup
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./spotify_queue.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/spotify_queue")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
@@ -89,13 +93,24 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
 # Add session middleware
-app.add_middleware(SessionMiddleware, secret_key=os.urandom(24), same_site="lax", https_only=False)
+SESSION_SECRET = os.getenv('JWT_SECRET', os.urandom(24))
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SESSION_SECRET,
+    same_site="lax",
+    https_only=True  # Enable in production
+)
 
+def encrypt_token(token: str) -> str:
+    return cipher_suite.encrypt(token.encode()).decode()
+
+def decrypt_token(encrypted_token: str) -> str:
+    return cipher_suite.decrypt(encrypted_token.encode()).decode()
 
 # Database dependency
 def get_db():
@@ -135,7 +150,6 @@ async def login():
 async def callback(
     request: Request, code: str = None, error: str = None, db: Session = Depends(get_db)
 ):
-    """Handle Spotify OAuth callback"""
     if error:
         return RedirectResponse(url=f"http://localhost:5173?error={error}")
 
@@ -152,15 +166,15 @@ async def callback(
         user_id = user_info["id"]
         session["user_id"] = user_id
 
-        # Create or update user token
-        user = UserToken(user_id=user_id, access_token=token_info["access_token"])
+        # Encrypt token before storing
+        encrypted_token = encrypt_token(token_info["access_token"])
+        user = UserToken(user_id=user_id, access_token=encrypted_token)
         db.merge(user)
         db.commit()
 
         return RedirectResponse(url="http://localhost:5173/dashboard")
     except Exception as e:
         return RedirectResponse(url=f"http://localhost:5173?error=token_error")
-
 
 @api_v1.get("/auth/status")
 async def auth_status(request: Request, db: Session = Depends(get_db)):
@@ -265,14 +279,13 @@ async def get_song_relationships(request: Request, db: Session = Depends(get_db)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# User Management Endpoints
+# Update token retrieval to decrypt tokens
 @api_v1.get("/users/{user_id}/token")
 async def get_user_token(user_id: str, db: Session = Depends(get_db)):
     user = db.query(UserToken).filter(UserToken.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
-
+    return {"user_id": user.user_id, "access_token": user.access_token}
 
 @api_v1.get("/users/{user_id}/mappings")
 async def get_user_mappings(user_id: str, db: Session = Depends(get_db)):

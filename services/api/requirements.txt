@@ -11,3 +11,6 @@ python-dotenv==1.0.0
 psycopg2-binary==2.9.9
 starlette==0.35.1
 alembic==1.13.1
+cryptography==42.0.2
+python-jose[cryptography]==3.3.0
+cors==1.0.1
