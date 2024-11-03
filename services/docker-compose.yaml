@@ -33,6 +33,12 @@ services:
       - CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
       - JWT_SECRET=${JWT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     depends_on:
       db:
         condition: service_healthy
@@ -49,7 +55,8 @@ services:
       - API_BASE_URL=http://api:8000/api/v1
       - ENCRYPTION_KEY=${ENCRYPTION_KEY} 
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - app-network
 

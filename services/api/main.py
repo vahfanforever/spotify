@@ -304,6 +304,9 @@ async def logout(request: Request):
     request.session.clear()
     return {"message": "Logged out successfully"}
 
+@api_v1.get("/health")
+async def health_check():
+    return {"status": "healthy"}
 
 # Include the router in the app
 app.include_router(api_v1)
