@@ -1,34 +1,47 @@
 version: '3.8'
 
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    depends_on:
+      - frontend
+      - api
+    networks:
+      - app-network
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "127.0.0.1:5173:5173"  # Only accessible from your PC
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=https://vahfanforever.com/spotify-connector/api
     networks:
       - app-network
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
   api:
     container_name: api 
     build:
       context: ./api
       dockerfile: Dockerfile
-    ports:
-      - "127.0.0.1:8000:8000"  # Only accessible from your PC
-    volumes:
-      - ./api:/app
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - REDIRECT_URI=http://localhost:8000/api/v1/callback
+      - REDIRECT_URI=https://vahfanforever.com/spotify-connector/api/v1/callback
       - CLIENT_ID=${SPOTIFY_CLIENT_ID}
       - CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
       - JWT_SECRET=${JWT_SECRET}
@@ -49,11 +62,9 @@ services:
     build:
       context: ./queue_manager
       dockerfile: Dockerfile
-    volumes:
-      - ./queue_manager:/app
     environment:
       - API_BASE_URL=http://api:8000/api/v1
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY} 
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     depends_on:
       api:
         condition: service_healthy
@@ -73,8 +84,6 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-    ports:
-      - "127.0.0.1:5432:5432"  # Only accessible from your PC
     networks:
       - app-network
 
