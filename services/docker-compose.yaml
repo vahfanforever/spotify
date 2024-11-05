@@ -5,8 +5,6 @@ services:
     build:
       context: .
       dockerfile: nginx/Dockerfile
-      args:                       
-        - API_BASE_URL=${API_BASE_URL}  
     ports:
       - "80:80"
       - "443:443"
@@ -19,6 +17,8 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    environment:
+      - VITE_API_URL=${API_BASE_URL}
 
   certbot:
     image: certbot/certbot

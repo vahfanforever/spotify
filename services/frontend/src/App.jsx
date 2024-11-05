@@ -4,18 +4,22 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import SpotifyAuth from './components/SpotifyAuth';
 import SpotifyDashboard from './components/SpotifyDashboard';
 
+// Get API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL;
+
 // Protected Route component to handle authentication
 const ProtectedRoute = ({ children }) => {
   // Check if user is authenticated
   const checkAuth = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/status', {
+      const response = await fetch(`${API_URL}/v1/auth/status`, {
         credentials: 'include'
       });
       const data = await response.json();
       return data.authenticated;
     } catch (error) {
       console.error('Auth check failed:', error);
+      console.error('API URL being used:', API_URL); // Debug log
       return false;
     }
   };
@@ -24,6 +28,7 @@ const ProtectedRoute = ({ children }) => {
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
+    console.log('Current API URL:', API_URL); // Debug log
     checkAuth().then(authenticated => {
       setIsAuthenticated(authenticated);
       setIsLoading(false);
@@ -38,8 +43,13 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const App = () => {
+  // Log API URL when app starts
+  React.useEffect(() => {
+    console.log('App initialized with API URL:', API_URL);
+  }, []);
+
   return (
-    <Router>
+    <Router basename="/spotify-connector">
       <Routes>
         <Route path="/" element={<SpotifyAuth />} />
         <Route

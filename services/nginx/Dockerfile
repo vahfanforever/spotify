@@ -1,10 +1,6 @@
 # Build the frontend
 FROM node:18-alpine as frontend-builder
 
-# Add build argument
-ARG API_BASE_URL
-ENV VITE_API_URL=${API_BASE_URL}
-
 WORKDIR /app
 
 # Copy package files
