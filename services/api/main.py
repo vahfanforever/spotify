@@ -86,7 +86,7 @@ Base.metadata.create_all(bind=engine)
 
 # Create FastAPI app and router
 app = FastAPI(title="Spotify Queue API")
-api_v1 = APIRouter(prefix="/api/v1")
+api_v1 = APIRouter(prefix="/v1")
 
 # Add CORS middleware
 app.add_middleware(
