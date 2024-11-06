@@ -1,10 +1,12 @@
+import logging
 import os
 from datetime import datetime
 from typing import List, Optional
 from uuid import uuid4
-from cryptography.fernet import Fernet
+
 import requests
 import uvicorn
+from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -15,8 +17,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 # Initialize encryption
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY').encode()
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY").encode()
 cipher_suite = Fernet(ENCRYPTION_KEY)
 
 # Database Models
@@ -91,26 +98,26 @@ api_v1 = APIRouter(prefix="/v1")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
 # Add session middleware
-SESSION_SECRET = os.getenv('JWT_SECRET', os.urandom(24))
+SESSION_SECRET = os.getenv("JWT_SECRET", os.urandom(24))
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://vahfanforever.com"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
+    SessionMiddleware, secret_key=SESSION_SECRET, same_site="lax", https_only=True, max_age=3600
 )
+
+
 def encrypt_token(token: str) -> str:
     return cipher_suite.encrypt(token.encode()).decode()
 
+
 def decrypt_token(encrypted_token: str) -> str:
     return cipher_suite.decrypt(encrypted_token.encode()).decode()
+
 
 # Database dependency
 def get_db():
@@ -151,7 +158,7 @@ async def callback(
     request: Request, code: str = None, error: str = None, db: Session = Depends(get_db)
 ):
     if error:
-        return RedirectResponse(url=f"http://localhost:5173?error={error}")
+        return RedirectResponse(url=f"{FRONTEND_URL}?error={error}")
 
     try:
         sp_oauth = create_spotify_oauth()
@@ -172,9 +179,11 @@ async def callback(
         db.merge(user)
         db.commit()
 
-        return RedirectResponse(url="http://localhost:5173/dashboard")
+        return RedirectResponse(url=f"{FRONTEND_URL}/dashboard")
     except Exception as e:
-        return RedirectResponse(url=f"http://localhost:5173?error=token_error")
+        logger.info(f"Exception {e} was thrown.")
+        return RedirectResponse(url=f"{FRONTEND_URL}?error=token_error")
+
 
 @api_v1.get("/auth/status")
 async def auth_status(request: Request, db: Session = Depends(get_db)):
@@ -287,6 +296,7 @@ async def get_user_token(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return {"user_id": user.user_id, "access_token": user.access_token}
 
+
 @api_v1.get("/users/{user_id}/mappings")
 async def get_user_mappings(user_id: str, db: Session = Depends(get_db)):
     mappings = db.query(SongMapping).filter(SongMapping.user_id == user_id).all()
@@ -304,9 +314,11 @@ async def logout(request: Request):
     request.session.clear()
     return {"message": "Logged out successfully"}
 
+
 @api_v1.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
 
 # Include the router in the app
 app.include_router(api_v1)

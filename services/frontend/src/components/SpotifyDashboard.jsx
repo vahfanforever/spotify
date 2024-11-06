@@ -3,6 +3,8 @@ import { Search, Plus, Save } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const SpotifyDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
@@ -36,7 +38,7 @@ const SpotifyDashboard = () => {
         setError(null);
 
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/search?q=${encodeURIComponent(searchQuery)}`, {
+            const response = await fetch(`${API_URL}/v1/search?q=${encodeURIComponent(searchQuery)}`, {
                 credentials: 'include'
             });
 
@@ -75,7 +77,7 @@ const SpotifyDashboard = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:8000/api/v1/songs/relationships', {
+            const response = await fetch(`${API_URL}/v1/songs/relationships`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
