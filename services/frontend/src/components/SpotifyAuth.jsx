@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// Get API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL;
+
 const SpotifyAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -10,13 +13,18 @@ const SpotifyAuth = () => {
   const handleLogin = async () => {
     try {
       setError(null);
-      console.log('Fetching Spotify auth URL...');
+      console.log('Fetching Spotify auth URL from:', `${API_URL}/v1/login`);
 
-      const response = await fetch('http://localhost:8000/api/v1/login', {
-        credentials: 'include'
+      const response = await fetch(`${API_URL}/v1/login`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -34,8 +42,6 @@ const SpotifyAuth = () => {
       setError(`Failed to initiate Spotify login: ${error.message}`);
     }
   };
-
-  // ... rest of your component code ...
 
   return (
     <div className="auth-container">

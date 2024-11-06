@@ -100,12 +100,12 @@ app.add_middleware(
 # Add session middleware
 SESSION_SECRET = os.getenv('JWT_SECRET', os.urandom(24))
 app.add_middleware(
-    SessionMiddleware, 
-    secret_key=SESSION_SECRET,
-    same_site="lax",
-    https_only=True  # Enable in production
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "https://vahfanforever.com"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
-
 def encrypt_token(token: str) -> str:
     return cipher_suite.encrypt(token.encode()).decode()
 

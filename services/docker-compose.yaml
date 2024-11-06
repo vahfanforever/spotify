@@ -17,8 +17,6 @@ services:
         condition: service_healthy
     networks:
       - app-network
-    environment:
-      - VITE_API_URL=${API_BASE_URL}
 
   certbot:
     image: certbot/certbot
