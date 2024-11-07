@@ -10,7 +10,9 @@ from cryptography.fernet import Fernet
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
+from spotipy.cache_handler import FlaskSessionCacheHandler
 from sqlalchemy import Column, DateTime, ForeignKey, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
@@ -129,13 +131,15 @@ def get_db():
 
 
 # Spotify OAuth setup
-def create_spotify_oauth():
+def create_spotify_oauth(request: Optional[Request] = None):
+    cache_handler = FlaskSessionCacheHandler(request.session) if request else None
     return SpotifyOAuth(
         client_id=os.getenv("CLIENT_ID"),
         client_secret=os.getenv("CLIENT_SECRET"),
         redirect_uri=os.getenv("REDIRECT_URI"),
         scope="user-read-playback-state user-modify-playback-state",
         show_dialog=True,
+        cache_handler=cache_handler,
     )
 
 
@@ -161,21 +165,25 @@ async def callback(
         return RedirectResponse(url=f"{FRONTEND_URL}?error={error}")
 
     try:
-        sp_oauth = create_spotify_oauth()
-        token_info = sp_oauth.get_access_token(code)
-        session = get_session(request)
-        session["token_info"] = token_info
+        auth_manager = create_spotify_oauth(request=request)
+
+        logger.info(f"Received auth code: {code[:5]}...")
+        token_info = auth_manager.get_access_token(code)
+        logger.info(f"Received access token starting with: {token_info['access_token'][:5]}...")
 
         # Get user ID from Spotify
-        headers = {"Authorization": f"Bearer {token_info['access_token']}"}
-        response = requests.get("https://api.spotify.com/v1/me", headers=headers)
-        user_info = response.json()
+        spotify = Spotify(auth_manager=auth_manager)
+        user_info = spotify.me()
         user_id = user_info["id"]
+
+        session = get_session(request)
         session["user_id"] = user_id
+        session["token_info"] = token_info
 
         # Encrypt token before storing
         encrypted_token = encrypt_token(token_info["access_token"])
         user = UserToken(user_id=user_id, access_token=encrypted_token)
+        logger.info(f"Storing user with Spotify ID: {user_id}")
         db.merge(user)
         db.commit()
 
@@ -183,6 +191,21 @@ async def callback(
     except Exception as e:
         logger.info(f"Exception {e} was thrown.")
         return RedirectResponse(url=f"{FRONTEND_URL}?error=token_error")
+
+
+@api_v1.get("/test-spotify-user")
+async def test_spotify_user(request: Request):
+    """Test endpoint to verify Spotify user info"""
+    session = get_session(request)
+    token_info = session.get("token_info")
+
+    if not token_info:
+        return {"error": "No token found"}
+
+    headers = {"Authorization": f"Bearer {token_info['access_token']}"}
+    response = requests.get("https://api.spotify.com/v1/me", headers=headers)
+
+    return {"status_code": response.status_code, "user_info": response.json()}
 
 
 @api_v1.get("/auth/status")
@@ -199,7 +222,7 @@ async def auth_status(request: Request, db: Session = Depends(get_db)):
         is_expired = token_info["expires_at"] - now < 60
 
         if is_expired:
-            sp_oauth = create_spotify_oauth()
+            sp_oauth = create_spotify_oauth(request=request)
             token_info = sp_oauth.refresh_access_token(token_info["refresh_token"])
             session["token_info"] = token_info
 
@@ -243,7 +266,7 @@ async def save_song_relationships(
     """Save song relationships"""
     session = get_session(request)
     user_id = session.get("user_id")
-
+    logger.info(f"Creating relationship for user: {user_id}")
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
